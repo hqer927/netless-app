@@ -41,6 +41,7 @@ export interface SlideControllerOptions {
   onRenderError?: (error: Error, pageIndex: number) => void;
   onNavigate?: (index: number, origin?: string) => void;
   showRenderError?: boolean;
+  invisibleBehavior?: "frozen" | "pause";
 }
 
 const noop = function noop() {
@@ -73,6 +74,8 @@ export class SlideController {
   private visible: boolean;
   private savedIsFrozen: boolean;
 
+  private invisibleBehavior: "frozen" | "pause";
+
   public constructor({
     context,
     anchor,
@@ -84,7 +87,9 @@ export class SlideController {
     onError,
     onRenderError,
     showRenderError,
+    invisibleBehavior,
   }: SlideControllerOptions) {
+    this.invisibleBehavior = invisibleBehavior ?? "frozen";
     this.onRenderStart = onRenderStart;
     this.onPageChanged = onPageChanged;
     this.onTransitionStart = onTransitionStart;
@@ -341,7 +346,11 @@ export class SlideController {
     this.isFrozen = true;
     if (this.ready) {
       log("[Slide] freeze", this.context.appId);
-      this.slide.frozen();
+      if (this.invisibleBehavior === "frozen") {
+        this.slide.frozen();
+      } else {
+        this.slide.pause();
+      }
     } else {
       this._toFreeze = 1;
     }
@@ -352,7 +361,11 @@ export class SlideController {
     this.isFrozen = false;
     if (this.ready) {
       log("[Slide] unfreeze", this.context.appId);
-      this.slide.release();
+      if (this.invisibleBehavior === "frozen") {
+        this.slide.release();
+      } else {
+        this.slide.resume();
+      }
     } else {
       this._toFreeze = -1;
     }

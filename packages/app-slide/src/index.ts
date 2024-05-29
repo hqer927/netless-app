@@ -69,6 +69,8 @@ export interface AppOptions
   onRenderError?: (error: Error, pageIndex: number) => void;
   /** whether to show an overlay of error message @default: true */
   showRenderError?: boolean;
+  /** Specify the behavior after hiding the slide; Freeze will destroy the slide and replace it with a snapshot, while Pause simply pauses the slide @default: 'frozen' */
+  invisibleBehavior?: "frozen" | "pause";
 }
 
 export interface ILogger {
@@ -150,6 +152,7 @@ const SlideApp: NetlessApp<Attributes, MagixEvents, AppOptions, AppResult> = {
         onNavigate: options.onNavigate,
         onRenderError: appOptions.onRenderError,
         showRenderError: appOptions.showRenderError,
+        invisibleBehavior: appOptions.invisibleBehavior,
       });
       if (useFreezer) apps.set(context.appId, slideController, box);
       logger.setAppController(context.appId, slideController);
