@@ -4,12 +4,17 @@ import type { Slide } from "@netless/slide";
 import type { DocsViewerPage } from "../DocsViewer";
 import type { Attributes } from "../typings";
 
-export function createDocsViewerPages(slide: Slide): DocsViewerPage[] {
+export function createDocsViewerPages(slide: Slide, previewUrls: string[] = []): DocsViewerPage[] {
   const { width, height, slideCount, slideState } = slide;
   const { taskId, url } = slideState;
   const pages: DocsViewerPage[] = [];
   for (let i = 1; i <= slideCount; ++i) {
-    pages.push({ width, height, thumbnail: `${url}/${taskId}/preview/${i}.png`, src: "ppt" });
+    const signedUrl = previewUrls.find(v => v.indexOf(`preview/${i}.png`) >= 0);
+    if (signedUrl) {
+      pages.push({ width, height, thumbnail: signedUrl, src: "ppt" });
+    } else {
+      pages.push({ width, height, thumbnail: `${url}/${taskId}/preview/${i}.png`, src: "ppt" });
+    }
   }
   return pages;
 }

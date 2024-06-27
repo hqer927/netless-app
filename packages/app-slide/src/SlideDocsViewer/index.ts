@@ -213,7 +213,7 @@ export class SlideDocsViewer {
 
   protected refreshPages = () => {
     if (this.slideController) {
-      this.viewer.pages = createDocsViewerPages(this.slideController.slide);
+      this.viewer.pages = createDocsViewerPages(this.slideController.slide, this.slideController.previewList);
       this.viewer.setPageIndex(this.getPageIndex(this.slideController.page));
       this.scaleDocsToFit();
     }

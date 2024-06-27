@@ -9,6 +9,8 @@ export interface Attributes {
   url: string;
   /** internal state of slide, do not change */
   state: SlideState | null;
+  resourceList: string[];
+  previewList: string[];
 }
 
 export type MagixPayload = {

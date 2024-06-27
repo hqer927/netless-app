@@ -27,6 +27,8 @@ export const EmptyAttributes: Attributes = {
   taskId: "",
   url: "",
   state: null,
+  resourceList: [],
+  previewList: [],
 };
 
 export interface SlideControllerOptions {
@@ -75,6 +77,9 @@ export class SlideController {
   private savedIsFrozen: boolean;
 
   private invisibleBehavior: "frozen" | "pause";
+
+  // 签名后的预览图
+  public previewList: string[] = [];
 
   public constructor({
     context,
@@ -153,8 +158,13 @@ export class SlideController {
     if (context.getIsWritable()) {
       context.storage.ensureState(EmptyAttributes);
     }
-    const { taskId, url, state } = context.storage.state;
-    slide.setResource(taskId, url || DefaultUrl);
+    const { taskId, url, resourceList, previewList, state } = context.storage.state;
+    this.previewList = previewList;
+    if (resourceList && resourceList.length > 0) {
+      slide.setResourceList(taskId, resourceList);
+    } else {
+      slide.setResource(taskId, url || DefaultUrl);
+    }
     if (state) {
       // if we already have state, try restore from it
       log("[Slide] init with state", JSON.stringify(state));

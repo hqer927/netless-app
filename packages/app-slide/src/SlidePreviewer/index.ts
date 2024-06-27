@@ -11,11 +11,13 @@ export interface PreviewParams {
   taskId: string;
   url?: string;
   debug?: boolean;
+  resourceList?: string[];
 }
 
 export default function previewSlide({
   container,
   taskId,
+  resourceList = [],
   url = DefaultUrl,
   debug = import.meta.env.DEV,
 }: PreviewParams) {
@@ -27,7 +29,7 @@ export default function previewSlide({
   const previewer = new SlidePreviewer({ target: container });
   previewer.debug = !!debug;
 
-  previewer.mount(taskId, url);
+  previewer.mount(taskId, url, resourceList);
 
   return previewer;
 }
@@ -45,6 +47,8 @@ export class SlidePreviewer {
   public debug = import.meta.env.DEV;
 
   public $slide!: HTMLDivElement;
+
+  private previewList: string[] = [];
 
   private readonly sideEffect = new SideEffectManager();
 
@@ -110,7 +114,7 @@ export class SlidePreviewer {
     }
   };
 
-  public mount(taskId: string, url: string) {
+  public mount(taskId: string, url: string, resourceList: string[], previewList: string[] = []) {
     this.target.appendChild(this.renderStyle());
     this.target.appendChild(this.viewer.$content);
     this.target.appendChild(this.viewer.$footer);
@@ -132,8 +136,13 @@ export class SlidePreviewer {
 
     this.registerEventListeners();
 
-    this.slide.setResource(taskId, url);
+    if (resourceList.length > 0) {
+      this.slide.setResourceList(taskId, resourceList);
+    } else {
+      this.slide.setResource(taskId, url);
+    }
     this.slide.renderSlide(1);
+    this.previewList = previewList;
   }
 
   protected renderStyle(): HTMLElement {
@@ -186,7 +195,7 @@ export class SlidePreviewer {
 
   protected refreshPages = () => {
     if (this.slide) {
-      this.viewer.pages = createDocsViewerPages(this.slide);
+      this.viewer.pages = createDocsViewerPages(this.slide, this.previewList);
       this.viewer.setPageIndex(this.getPageIndex(this.slide.slideState.currentSlideIndex));
     }
   };
