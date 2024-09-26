@@ -1,3 +1,7 @@
-import { createViteConfig } from "../../scripts/create-vite-config";
+import { defineConfig } from 'vite'
 
-export default createViteConfig();
+export default defineConfig({
+  define: {
+    __VERSION__: '"dev"'
+  }
+})

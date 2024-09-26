@@ -1,18 +1,15 @@
 import type IQuillRange from "quill-cursors/dist/quill-cursors/i-range";
 
-import type { AppContext } from "@netless/window-manager";
-import type { Vector } from "@netless/y";
-import type { NetlessAppQuillAttributes } from "./index";
+import type { RoomState } from "@netless/fastboard";
 
 import * as Y from "yjs";
 
 import Quill from "quill";
 import QuillCursors from "quill-cursors";
 import { QuillBinding } from "y-quill";
-import { SideEffectManager } from "side-effect-manager";
-import { createVector } from "@netless/y";
-import { connect } from "@netless/y/yjs";
+import { disposableStore } from "@wopjs/disposable";
 
+import { connect, createVector, type AppContext, type Vector } from "./yjs-binding";
 import { add_class, color_to_string, element, next_tick } from "./internal";
 import styles from "./style.scss?inline";
 
@@ -32,22 +29,22 @@ export class QuillEditor {
   readonly $editor: HTMLDivElement;
 
   readonly vector: Vector;
-  readonly sideEffect = new SideEffectManager();
+  readonly dispose = disposableStore();
 
-  constructor(readonly context: AppContext<NetlessAppQuillAttributes>) {
+  constructor(readonly context: AppContext) {
     this.vector = createVector(context, "quill");
-    this.sideEffect.addDisposer(this.vector.destroy.bind(this.vector));
+    this.dispose.add(this.vector.destroy.bind(this.vector));
 
     this.yDoc = new Y.Doc();
     this.yText = this.yDoc.getText("quill");
-    this.sideEffect.addDisposer(connect(this.vector, this.yDoc));
+    this.dispose.add(connect(this.vector, this.yDoc));
 
     this.$container = add_class(element("div"), "container");
     this.$editor = add_class(element("div"), "editor");
     this.$container.appendChild(this.$editor);
 
-    context.box.mountStyles(QuillEditor.styles);
-    context.box.mountContent(this.$container);
+    context.getBox().mountStyles(QuillEditor.styles);
+    context.getBox().mountContent(this.$container);
 
     this.editor = new Quill(this.$editor, {
       modules: {
@@ -67,10 +64,10 @@ export class QuillEditor {
       },
       placeholder: "Hello, world!",
       theme: "snow",
-      readOnly: !context.isWritable,
+      readOnly: !context.getIsWritable(),
     });
 
-    this.cursors = this.editor.getModule("cursors");
+    this.cursors = this.editor.getModule("cursors") as QuillCursors;
 
     this.yBinding = new QuillBinding(this.yText, this.editor);
 
@@ -89,18 +86,18 @@ type UserCursor = { anchor: Y.RelativePosition; head: Y.RelativePosition };
 type UserInfo = { name?: string; color?: string };
 
 function setup_sync_handlers({
-  sideEffect,
+  dispose,
   context,
   editor,
   cursors,
   yDoc: doc,
   yText: type,
 }: QuillEditor) {
-  const ME = context.room?.uid || "";
+  const ME = context.getRoom()?.uid || "";
 
-  sideEffect.addDisposer(
+  dispose.add(
     context.emitter.on("writableChange", () => {
-      context.isWritable ? editor.enable() : editor.disable();
+      context.getIsWritable() ? editor.enable() : editor.disable();
     })
   );
 
@@ -115,10 +112,10 @@ function setup_sync_handlers({
         return update_cursor(cursors, null, uid, doc, type, timers);
       }
       const cursor = cursors$$.state[uid];
-      const member = context.members.find(a => a.uid === uid);
+      const member = context.getDisplayer().state.roomMembers.find(a => a.payload?.uid === uid);
       if (!member) {
         // setState() will trigger refreshCursors() synchronously, so we must schedule it to next tick.
-        if (context.isWritable) {
+        if (context.getIsWritable()) {
           next_tick().then(() => cursors$$.setState({ [uid]: undefined }));
         }
         return update_cursor(cursors, null, uid, doc, type, timers);
@@ -130,25 +127,33 @@ function setup_sync_handlers({
       update_cursor(cursors, { user, cursor }, uid, doc, type, timers);
     });
   };
-  sideEffect.add(() => {
+  dispose.make(() => {
     const onSelectionChange = (_0: string, _1: unknown, _2: unknown, origin: string) => {
       const sel = editor.getSelection();
       // prevent incorrect cursor jumping https://github.com/yjs/y-quill/issues/14
       if (origin === "silent") return;
       if (sel === null) {
-        context.isWritable && cursors$$.setState({ [ME]: null });
+        context.getIsWritable() && cursors$$.setState({ [ME]: null });
       } else {
         const anchor = Y.createRelativePositionFromTypeIndex(type, sel.index);
         const head = Y.createRelativePositionFromTypeIndex(type, sel.index + sel.length);
-        context.isWritable && cursors$$.setState({ [ME]: { anchor, head } });
+        context.getIsWritable() && cursors$$.setState({ [ME]: { anchor, head } });
       }
       refreshCursors();
     };
     editor.on("editor-change", onSelectionChange);
     return () => editor.off("editor-change", onSelectionChange);
   });
-  sideEffect.addDisposer(cursors$$.on("stateChanged", refreshCursors));
-  sideEffect.addDisposer(context.emitter.on("roomMembersChange", refreshCursors));
+  dispose.add(cursors$$.addStateChangedListener(refreshCursors));
+
+  dispose.make(() => {
+    const eventName = context.isReplay ? 'onPlayerStateChanged' : 'onRoomStateChanged'
+    const listener = (state: Partial<RoomState>) => {
+      if (state.roomMembers) refreshCursors();
+    }
+    context.getDisplayer().callbacks.on(eventName, listener)
+    return () => context.getDisplayer().callbacks.off(eventName, listener)
+  })
 
   // #endregion
 }
