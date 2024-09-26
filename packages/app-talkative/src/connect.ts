@@ -35,6 +35,15 @@ export function connect({ context, logger, ...callbacks }: ConnectParams): () =>
       // send first page jump message
       callbacks.postMessage(JSON.stringify({ method: "onJumpPage", toPage: page }));
     },
+    onLocalMessage(event: Record<string, unknown>) {
+      if (context.isWritable) {
+        context.dispatchMagixEvent("broadcast", JSON.stringify(event));
+
+        // save last message
+        const lastMsg = JSON.stringify({ ...event, isRestore: true });
+        storage.setState({ lastMsg });
+      }
+    },
 
     onFileMessage(event: Record<string, unknown>) {
       if (context.getIsWritable()) {
