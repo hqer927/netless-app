@@ -1,6 +1,6 @@
 {
   "name": "@netless/app-talkative",
-  "version": "0.1.1",
+  "version": "0.1.2-test.7",
   "main": "dist/main.cjs.js",
   "module": "dist/main.es.js",
   "types": "./dist/index.d.ts",
@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@juggle/resize-observer": "^3.3.1",
-    "@netless/app-shared": "workspace:*",
+    "@netless/app-shared": "^0.1.2",
     "side-effect-manager": "^1.1.0"
   }
 }
