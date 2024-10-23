@@ -3,6 +3,7 @@ import type { AppContext } from "@netless/window-manager";
 export interface UserPayload {
   memberId: number;
   uid: string;
+  userId: string;
   nickName: string;
 }
 
@@ -13,9 +14,10 @@ export function getUserPayload(context: AppContext): UserPayload {
   const userPayload = displayer.state.roomMembers.find(
     member => member.memberId === memberId
   )?.payload;
-  const uid = room?.uid || userPayload?.uid || "";
+  const uid = userPayload?.uid || room?.uid || "";
   const nickName = userPayload?.nickName || uid;
-  return { memberId, uid, nickName };
+  const userId = userPayload?.userId || uid;
+  return { memberId, uid, userId, nickName };
 }
 
 // from @polka/url (https://github.com/lukeed/polka, MIT license)

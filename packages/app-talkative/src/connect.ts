@@ -9,6 +9,7 @@ export interface ConnectParams {
   postMessage: (message: string) => void;
   onRatioChanged: (ratio: number) => void;
   isSentBySelf: (source: MessageEventSource | null) => boolean;
+  onLocalMessage?:(appId: string, event: Record<string, unknown>) => void;
 }
 
 export function connect({ context, logger, ...callbacks }: ConnectParams): () => void {
@@ -36,12 +37,8 @@ export function connect({ context, logger, ...callbacks }: ConnectParams): () =>
       callbacks.postMessage(JSON.stringify({ method: "onJumpPage", toPage: page }));
     },
     onLocalMessage(event: Record<string, unknown>) {
-      if (context.isWritable) {
-        context.dispatchMagixEvent("broadcast", JSON.stringify(event));
-
-        // save last message
-        const lastMsg = JSON.stringify({ ...event, isRestore: true });
-        storage.setState({ lastMsg });
+      if (context.getIsWritable()) {
+        callbacks?.onLocalMessage&& callbacks.onLocalMessage(context.appId, event);
       }
     },
 
