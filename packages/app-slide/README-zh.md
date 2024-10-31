@@ -38,7 +38,7 @@ manager.addApp({
       "https://convertcdn.netless.group/test/dynamicConvert/8ed5cce449874494a9ca7894b39415fb/jsonOutput/slide-1.json",
       "https://convertcdn.netless.group/test/dynamicConvert/8ed5cce449874494a9ca7894b39415fb/jsonOutput/slide-2.json",
       "https://convertcdn.netless.group/test/dynamicConvert/8ed5cce449874494a9ca7894b39415fb/jsonOutput/slide-3.json",
-    ]
+    ],
   } as SlideAttributes,
 });
 ```
