@@ -15,6 +15,13 @@ WindowManager.register({
   appOptions: {
     // turn on to show debug controller
     debug: false,
+    urlInterrupter: async (url: string) => {
+      // There will be different implementations depending on different cloud storage services.
+      // Generally, signatures are added to the query parameters.
+      const { ak, expire } = await getSTSToken(); // Customer service side implementation.
+      return `${url}?expire=${expire}&ak=${ak}`;
+      // https://github.com/netless-io/netless-slide-demo#slide-%E9%85%8D%E7%BD%AE for more options
+    },
   },
   src: async () => {
     const app = await import("@netless/app-slide");

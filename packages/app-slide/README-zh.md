@@ -13,6 +13,12 @@ WindowManager.register({
   appOptions: {
     // 打开这个选项显示 debug 工具栏
     debug: false,
+    urlInterrupter: async (url: string) => {
+      // 一般会有不同的实现，比如签名。
+      const { ak, expire } = await getSTSToken(); // 客户的客户端实现。
+      return `${url}?expire=${expire}&ak=${ak}`;
+    },
+    // 更多选项可以在 https://github.com/netless-io/netless-slide-demo#slide-%E9%85%8D%E7%BD%AE 查看
   },
   src: async () => {
     const app = await import("@netless/app-slide");
