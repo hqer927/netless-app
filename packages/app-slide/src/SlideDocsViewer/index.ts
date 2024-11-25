@@ -1,4 +1,5 @@
-import type { ReadonlyTeleBox, AnimationMode, View } from "@netless/window-manager";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ReadonlyTeleBox, AnimationMode, View, AppContext } from "@netless/window-manager";
 import type { SlideController, SlideControllerOptions } from "../SlideController";
 
 import { SideEffectManager } from "side-effect-manager";
@@ -6,6 +7,8 @@ import { createDocsViewerPages } from "../SlideController";
 import { DocsViewer, type DocsViewerPage } from "../DocsViewer";
 import { logger } from "../utils/logger";
 import { isEditable } from "../utils/helpers";
+import type { Attributes, MagixEvents } from "../typings";
+import type { AppOptions } from "..";
 
 export const ClickThroughAppliances = new Set(["clicker"]);
 
@@ -18,6 +21,7 @@ export type MountSlideOptions = Omit<SlideControllerOptions, "context" | "onPage
 };
 
 export interface SlideDocsViewerConfig {
+  context: AppContext<Attributes, MagixEvents, AppOptions>;
   box: ReadonlyTeleBox;
   view: View;
   mountSlideController: (options: MountSlideOptions) => SlideController;
@@ -35,6 +39,7 @@ export interface SavePdfConfig {
 }
 
 export class SlideDocsViewer {
+  readonly context: AppContext<Attributes, MagixEvents, AppOptions>
   public viewer: DocsViewer;
   public slideController: SlideController | null = null;
 
@@ -48,6 +53,7 @@ export class SlideDocsViewer {
   private isViewMounted = false;
 
   public constructor({
+    context,
     box,
     view,
     mountSlideController,
@@ -58,6 +64,7 @@ export class SlideDocsViewer {
     onPagesReady,
     onNavigate,
   }: SlideDocsViewerConfig) {
+    this.context = context;
     this.box = box;
     this.whiteboardView = view;
     this.mountSlideController = mountSlideController;
@@ -299,25 +306,33 @@ export class SlideDocsViewer {
 
   protected namespace = "netless-app-slide";
 
-  private getWhiteSnapshot(
+  private async getWhiteSnapshot(
     pageIndex: number,
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
     slideWidth: number,
     slideHeight: number
   ) {
-    // Render whiteboard into canvas, and it must fit the slide size.
-    this.whiteboardView.screenshotToCanvas(
-      ctx,
-      `${this.baseScenePath}/${pageIndex}`,
-      canvas.width,
-      canvas.height,
-      {
+      const camera = {
         centerX: 0,
         centerY: 0,
         scale: Math.min(canvas.width / slideWidth, canvas.height / slideHeight),
+      };
+      const scenePath = `${this.baseScenePath}/${pageIndex}`;
+      // appliancePlugin is a performance optimization for whiteboard;
+      const windowManger = (this.context as any).manager.windowManger as any;
+      if (windowManger._appliancePlugin) {
+        await windowManger._appliancePlugin.screenshotToCanvasAsync(ctx, scenePath, canvas.width, canvas.height, camera);
+      } else {
+        // Render whiteboard into canvas, and it must fit the slide size.
+        this.whiteboardView.screenshotToCanvas(
+          ctx,
+          scenePath,
+          canvas.width,
+          canvas.height,
+          camera
+        );
       }
-    );
   }
 
   private reportProgress(progress: number, result: { pdf: ArrayBuffer; title: string } | null) {
@@ -384,7 +399,7 @@ export class SlideDocsViewer {
         resizeCtx.drawImage(img, 0, 0, pdfWidth, pdfHeight);
       }
       whiteCtx.clearRect(0, 0, pdfWidth, pdfHeight);
-      this.getWhiteSnapshot(i, whiteSnapshotCanvas, whiteCtx, width, height);
+      await this.getWhiteSnapshot(i, whiteSnapshotCanvas, whiteCtx, width, height);
       try {
         const whiteSnapshot = whiteSnapshotCanvas.toDataURL("image/png");
         const whiteImg = document.createElement("img");

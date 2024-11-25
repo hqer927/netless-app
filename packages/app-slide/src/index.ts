@@ -175,6 +175,7 @@ const SlideApp: NetlessApp<Attributes, MagixEvents, AppOptions, AppResult> = {
     };
 
     docsViewer = new SlideDocsViewer({
+      context,
       box,
       view,
       mountSlideController,
