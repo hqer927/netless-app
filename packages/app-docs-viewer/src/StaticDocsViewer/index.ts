@@ -1,4 +1,5 @@
-import type { AnimationMode, ReadonlyTeleBox } from "@netless/window-manager";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { AnimationMode, AppContext, ReadonlyTeleBox } from "@netless/window-manager";
 import type { View, Size, Camera } from "white-web-sdk";
 import type { DebouncedFunction, Options } from "debounce-fn";
 import debounceFn from "debounce-fn";
@@ -10,12 +11,14 @@ import { clamp, isEditable, preventEvent } from "../utils/helpers";
 import { Stepper } from "./stepper";
 import { PageRenderer } from "../PageRenderer";
 import { ScrollBar } from "../ScrollBar";
+import type { NetlessAppStaticDocsViewerAttributes } from "..";
 
 const ResizeObserver = window.ResizeObserver || Polyfill;
 
 const RATIO_BASE_CONTAINER_HEIGHT = 640;
 
 export interface StaticDocsViewerConfig {
+  context: AppContext<NetlessAppStaticDocsViewerAttributes>,
   whiteboardView: View;
   readonly: boolean;
   box: ReadonlyTeleBox;
@@ -35,6 +38,7 @@ export interface SavePdfConfig {
 
 export class StaticDocsViewer {
   public constructor({
+    context,
     whiteboardView,
     readonly,
     box,
@@ -45,6 +49,7 @@ export class StaticDocsViewer {
     baseScenePath,
     appId,
   }: StaticDocsViewerConfig) {
+    this.context = context;
     this.whiteboardView = whiteboardView;
     this.readonly = readonly;
     this.box = box;
@@ -113,6 +118,7 @@ export class StaticDocsViewer {
 
   readonly pageRenderer: PageRenderer;
   readonly scrollbar: ScrollBar;
+  readonly context: AppContext<NetlessAppStaticDocsViewerAttributes>;
 
   protected sideEffect = new SideEffectManager();
 
@@ -516,11 +522,18 @@ export class StaticDocsViewer {
       whiteCtx.drawImage(img, 0, 0);
       const pdfPageBase64 = whiteSnapshotCanvas.toDataURL("image/jpeg", 0.6);
       whiteCtx.clearRect(0, 0, width, height);
-      this.whiteboardView.screenshotToCanvas(whiteCtx, scenePath, width, height, {
+      const camera = {
         centerX: width / 2,
         centerY: height / 2 + index * height,
         scale: 1,
-      });
+      }
+      // appliancePlugin is a performance optimization for whiteboard;
+      const windowManger = (this.context as any).manager.windowManger as any
+      if (windowManger._appliancePlugin) {
+        await windowManger._appliancePlugin.screenshotToCanvasAsync(whiteCtx, scenePath, width, height, camera);
+      } else {
+        this.whiteboardView.screenshotToCanvas(whiteCtx, scenePath, width, height, camera);
+      }
       const snapshot = whiteSnapshotCanvas.toDataURL("image/png");
       pdf.addImage(pdfPageBase64, "JPEG", 0, 0, width, height, "", "FAST");
       pdf.addImage(snapshot, "PNG", 0, 0, width, height, "", "FAST");

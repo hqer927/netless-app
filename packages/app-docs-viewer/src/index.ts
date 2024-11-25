@@ -81,6 +81,7 @@ function setupStaticDocsViewer(
   whiteboardView.disableCameraTransform = !context.getIsWritable();
 
   const docsViewer = new StaticDocsViewer({
+    context,
     whiteboardView,
     readonly: !context.getIsWritable(),
     box,
